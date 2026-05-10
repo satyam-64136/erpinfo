@@ -189,10 +189,6 @@ body:not(.light) .light-icon{display:none}
 
 
 
-/* kill native browser clear button on type=search */
-.s-inp::-webkit-search-cancel-button,
-.s-inp::-webkit-search-decoration{-webkit-appearance:none;display:none}
-
 .s-inp{
   flex:1;background:none;border:none;outline:none;
   font-family:'Inter',sans-serif;font-size:15px;font-weight:400;
@@ -333,6 +329,8 @@ mark{
   cursor:pointer;
   border-radius:14px;
   padding:0;
+  container-type:inline-size;
+  container-name:card;
   background:linear-gradient(135deg,rgba(255,255,255,.065) 0%,rgba(255,255,255,.018) 100%);
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   border:1px solid rgba(255,255,255,.09);
@@ -411,9 +409,17 @@ mark{
 }
 
 .card-fields{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+/* wider cards get 2-col layout */
+@container card (min-width:220px){
+  .card-fields{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px 14px;
+  }
 }
 .card-fields .cf-full{grid-column:1/-1}
 
@@ -432,6 +438,9 @@ mark{
   color:var(--gold);font-weight:600;
   text-shadow:0 0 10px rgba(212,146,42,.4);
   font-size:13px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 .cf-val.email{color:var(--text2);font-size:11px}
 .cf-val.na{color:var(--text3);font-style:italic;font-size:11px}
@@ -439,56 +448,35 @@ mark{
 /* ─── MODAL — BOTTOM SHEET ON MOBILE, CENTERED ON DESKTOP ── */
 .overlay{
   position:fixed;inset:0;z-index:800;
-  background:rgba(4,3,14,.65);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  background:rgba(4,3,14,.7);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   display:flex;
-  align-items:flex-end;   /* mobile: bottom */
+  align-items:center;
   justify-content:center;
+  padding:clamp(12px,4vw,20px);
   opacity:0;pointer-events:none;
   transition:opacity .22s;
 }
 .overlay.open{opacity:1;pointer-events:all}
 
-/* mobile: slides up from bottom like screenshot */
 .sheet{
   background:linear-gradient(170deg,rgba(22,18,40,.98) 0%,rgba(13,10,26,.99) 100%);
   backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
-  border-radius:20px 20px 0 0;
-  border:1px solid rgba(255,255,255,.1);
-  border-bottom:none;
-  box-shadow:0 -8px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.09);
-  width:100%;
-  transform:translateY(100%);
-  transition:transform .3s cubic-bezier(.32,1,.64,1);
-  opacity:1;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 24px 80px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.09);
+  width:calc(100% - 0px);max-width:420px;
+  transform:scale(.92) translateY(10px);
+  transition:transform .28s cubic-bezier(.34,1.2,.64,1),opacity .22s;
   overflow:hidden;
-  max-height:88dvh;overflow-y:auto;
-  padding-bottom:env(safe-area-inset-bottom);
+  max-height:min(92dvh,560px);overflow-y:auto;
 }
-.overlay.open .sheet{transform:translateY(0)}
+.overlay.open .sheet{transform:scale(1) translateY(0)}
 
-/* handle pill on mobile */
-.sheet-handle{
-  width:36px;height:4px;border-radius:99px;
-  background:rgba(255,255,255,.15);
-  margin:12px auto 0;
-}
+/* handle hidden — not a bottom sheet anymore */
+.sheet-handle{display:none}
 
-/* desktop: centered modal */
-@media(min-width:600px){
-  .overlay{align-items:center;padding:20px}
-  .sheet{
-    border-radius:20px;
-    border-bottom:1px solid rgba(255,255,255,.1);
-    width:100%;max-width:460px;
-    transform:scale(.9) translateY(12px);
-    max-height:90dvh;
-  }
-  .overlay.open .sheet{transform:scale(1) translateY(0)}
-  .sheet-handle{display:none}
-}
-
-.sheet-body{padding:24px 24px 28px;position:relative}
+.sheet-body{padding:clamp(12px,3vw,24px) clamp(14px,4vw,24px);padding-bottom:clamp(14px,3vh,28px);position:relative}
 
 .sheet-close{
   position:absolute;top:0;right:0;
@@ -504,25 +492,28 @@ mark{
 .sheet-kana{
   font-family:'Noto Serif JP',serif;
   font-size:10px;font-weight:300;
-  color:var(--text3);letter-spacing:.3em;margin-bottom:10px;
+  color:var(--text3);letter-spacing:.3em;margin-bottom:6px;
 }
 
 .sheet-name{
   font-family:'Shippori Mincho',serif;
-  font-size:clamp(24px,6vw,34px);font-weight:800;
+  font-size:clamp(20px,5.5vw,34px);font-weight:800;
   color:var(--ink);letter-spacing:.02em;
-  margin-bottom:20px;line-height:1.15;word-break:break-word;
+  margin-bottom:clamp(8px,2vh,16px);line-height:1.15;word-break:break-word;
   text-shadow:0 2px 20px rgba(0,0,0,.5);
 }
 
-.sheet-rule{height:1px;background:linear-gradient(90deg,var(--sakura),var(--gold),transparent);opacity:.4;margin-bottom:18px}
+.sheet-rule{height:1px;background:linear-gradient(90deg,var(--sakura),var(--gold),transparent);opacity:.4;margin-bottom:clamp(8px,2vh,18px)}
 
-.sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sheet-grid{display:flex;flex-direction:column;gap:clamp(6px,1.5vh,10px)}
+@media(min-width:480px){
+  .sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(6px,1.5vh,10px)}
+}
 
 .sf{
   background:rgba(240,236,224,.03);
   border:1px solid rgba(240,236,224,.07);
-  border-radius:10px;padding:14px 16px;
+  border-radius:10px;padding:clamp(8px,2vh,14px) clamp(10px,2.5vw,16px);
   transition:border-color .18s,background .18s;
 }
 .sf:hover{border-color:rgba(232,96,122,.2);background:rgba(240,236,224,.05)}
@@ -530,14 +521,19 @@ mark{
 
 .sf-label{
   font-size:8px;letter-spacing:.28em;color:var(--text3);
-  font-family:var(--mono);margin-bottom:7px;text-transform:uppercase;
+  font-family:var(--mono);margin-bottom:clamp(3px,1vh,7px);text-transform:uppercase;
 }
 .sf-val{
   font-family:'Shippori Mincho',serif;
-  font-size:16px;font-weight:600;color:var(--ink);
-  word-break:break-all;letter-spacing:.02em;
+  font-size:clamp(13px,3.8vw,16px);font-weight:600;color:var(--ink);
+  word-break:break-word;letter-spacing:.02em;
+  font-variant-numeric:tabular-nums;
 }
-.sf-val.indigo{color:var(--gold);font-size:20px;font-weight:700;text-shadow:0 0 14px rgba(212,146,42,.4)}
+.sf-val.indigo{
+  color:var(--gold);font-size:clamp(13px,4vw,18px);font-weight:700;
+  text-shadow:0 0 14px rgba(212,146,42,.4);
+  white-space:normal;word-break:break-word;overflow:visible;
+}
 .sf-val.na{color:var(--text3);font-style:italic;font-size:13px;font-weight:400}
 
 /* ─── LOADING ────────────────────────────── */
@@ -805,7 +801,7 @@ body.light .hdr-kana{color:var(--text3)}
   <div class="search-wrap" id="sw">
     <div class="search-box">
 
-      <input class="s-inp" id="si" type="search" inputmode="search"
+      <input class="s-inp" id="si" type="text" inputmode="search"
         placeholder="Search name, ERP or phone…"
         autocomplete="off" autocorrect="off" spellcheck="false">
       <button class="s-clr" id="sClr" title="Clear">
@@ -875,13 +871,13 @@ body.light .hdr-kana{color:var(--text3)}
         </div>
         <div class="sf">
           <div class="sf-label">PHONE</div>
-          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-          <div class="sf-val indigo" id="shPhone" style="flex:1;min-width:0"></div>
-          <button class="copy-btn" id="copyPhoneBtn" title="Copy phone">
-            <svg viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="11" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v9A1.5 1.5 0 003.5 14H5"/></svg>
-            COPY
-          </button>
-        </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0">
+            <div class="sf-val indigo" id="shPhone" style="flex:1;min-width:0;word-break:break-word"></div>
+            <button class="copy-btn" id="copyPhoneBtn" title="Copy phone" style="flex-shrink:0">
+              <svg viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="11" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v9A1.5 1.5 0 003.5 14H5"/></svg>
+              COPY
+            </button>
+          </div>
         </div>
         <div class="sf full">
           <div class="sf-label">EMAIL</div>
@@ -1087,12 +1083,15 @@ inp.addEventListener('focus',()=>{
 inp.addEventListener('blur',()=>{sw.classList.remove('focused');setTimeout(closeDD,200)});
 inp.addEventListener('input',()=>{
   clrBtn.classList.toggle('show',inp.value.length>0);
+  /* hide old results when user edits — prevents stale results showing */
+  resWrap.style.display='none';
+  emptyEl.style.display='none';
   clearTimeout(dbt);
   dbt=setTimeout(()=>{
     const q=inp.value.trim();
     if(!q){closeDD();return}
-    renderDD(srch(q),q);
-  },100);
+    renderDD(srch(q),q);  /* suggestions only — never auto-executes go() */
+  },300);
 });
 inp.addEventListener('keydown',e=>{
   const items=ddList.querySelectorAll('.dd-item');
