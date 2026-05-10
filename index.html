@@ -804,11 +804,7 @@ body.light .hdr-kana{color:var(--text3)}
       <input class="s-inp" id="si" type="text" inputmode="search"
         placeholder="Search name, ERP or phone…"
         autocomplete="off" autocorrect="off" spellcheck="false">
-      <button class="s-clr" id="sClr" title="Clear">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M1 1l10 10M11 1L1 11"/>
-        </svg>
-      </button>
+
       <button class="s-run" id="sBtn" title="Search">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       </button>
@@ -908,10 +904,8 @@ body.light .hdr-kana{color:var(--text3)}
 let DB=[],filtered=[],allHits=[],activeIdx=-1,dbt=null;
 const MAX=8;
 
-/* refs */
 const sw      =document.getElementById('sw');
 const inp     =document.getElementById('si');
-const clrBtn  =document.getElementById('sClr');
 const execBtn =document.getElementById('sBtn');
 const ddEl    =document.getElementById('dd');
 const ddList  =document.getElementById('ddList');
@@ -931,6 +925,7 @@ const shErp   =document.getElementById('shErp');
 const shPhone =document.getElementById('shPhone');
 const shEmail =document.getElementById('shEmail');
 const stClock =document.getElementById('stClock');
+const copyBtn =document.getElementById('copyPhoneBtn');
 
 /* clock */
 (function tick(){
@@ -938,7 +933,7 @@ const stClock =document.getElementById('stClock');
   setTimeout(tick,1000);
 })();
 
-/* load */
+/* load data */
 fetch('./data.json')
   .then(r=>r.json())
   .then(raw=>{
@@ -964,51 +959,58 @@ fetch('./data.json')
 /* utils */
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function hl(t,q){
-  if(!t||!q)return esc(t||'');
+  if(!t||!q) return esc(t||'');
   const i=t.toLowerCase().indexOf(q.toLowerCase());
-  if(i<0)return esc(t);
+  if(i<0) return esc(t);
   return esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length));
 }
 const isNA=v=>!v||['not found or no access','0','null','undefined','nan'].includes(String(v).toLowerCase().trim());
 const srch=q=>DB.filter(d=>d._s.includes(q.toLowerCase().trim()));
 
-/* dropdown */
+/* close dropdown */
+const closeDD=()=>{ddEl.classList.remove('open');activeIdx=-1};
+
+/* render suggestions dropdown */
 function renderDD(hits,q){
   activeIdx=-1;
   const top=hits.slice(0,MAX);
   ddCnt.textContent=hits.length>MAX?top.length+'+':hits.length;
-  ddList.innerHTML=top.length
-    ?top.map((r,i)=>{
-        const nm=r.name?hl(r.name,q):'<span style="color:var(--text3);font-style:italic">Unnamed</span>';
-        const ph=isNA(r.phone)?'—':hl(r.phone,q);
-        return`<div class="dd-item" data-i="${i}">
-          <div class="dd-left">
-            <div class="dd-name${r.name?'':' unnamed'}">${nm}</div>
-            <div class="dd-erp">${hl(r.erp,q)}</div>
-          </div>
-          <div class="dd-right"><span class="dd-phone">${ph}</span></div>
-        </div>`;
-      }).join('')
-    :'<div class="dd-empty">Press Search or ↵</div>';
+  if(!top.length){
+    ddList.innerHTML='<div class="dd-empty">Press Search or ↵</div>';
+    filtered=[];
+    ddEl.classList.add('open');
+    return;
+  }
+  ddList.innerHTML=top.map((r,i)=>{
+    const nm=r.name?hl(r.name,q):'<span style="color:var(--text3);font-style:italic">Unnamed</span>';
+    const ph=isNA(r.phone)?'—':hl(r.phone,q);
+    return`<div class="dd-item" data-i="${i}">
+      <div class="dd-left">
+        <div class="dd-name${r.name?'':' unnamed'}">${nm}</div>
+        <div class="dd-erp">${hl(r.erp,q)}</div>
+      </div>
+      <div class="dd-right"><span class="dd-phone">${ph}</span></div>
+    </div>`;
+  }).join('');
   filtered=top;
   ddEl.classList.add('open');
   ddList.querySelectorAll('.dd-item').forEach(el=>{
-    el.addEventListener('mousedown',e=>{e.preventDefault();go(filtered[+el.dataset.i].name||filtered[+el.dataset.i].erp||q)});
-    el.addEventListener('touchend',e=>{e.preventDefault();go(filtered[+el.dataset.i].name||filtered[+el.dataset.i].erp||q)});
+    el.addEventListener('mousedown',e=>{
+      e.preventDefault();
+      const item=filtered[+el.dataset.i];
+      if(item){inp.value=item.name||item.erp||q;go();}
+    });
     el.addEventListener('mouseover',()=>{
       ddList.querySelectorAll('.dd-item').forEach((e,j)=>e.classList.toggle('hi',j===+el.dataset.i));
       activeIdx=+el.dataset.i;
     });
   });
 }
-const closeDD=()=>{ddEl.classList.remove('open');activeIdx=-1};
 
-/* exec search */
-function go(q){
-  const query=(q||inp.value||'').trim();
-  if(!query){reset();return}
-  inp.value=query;
-  clrBtn.classList.add('show');
+/* execute full search */
+function go(){
+  const query=inp.value.trim();
+  if(!query){reset();return;}
   closeDD();
 
   const hits=srch(query);
@@ -1018,12 +1020,11 @@ function go(q){
 
   if(!hits.length){
     emptyEl.style.display='block';
-    emptyQ.textContent=query;
+    emptyQ.textContent='"'+query+'"';
     return;
   }
 
   resCount.textContent=hits.length;
-
   resGrid.innerHTML=hits.map((r,i)=>{
     const nm=r.name||null;
     const ph=isNA(r.phone)?null:r.phone;
@@ -1045,13 +1046,15 @@ function go(q){
   }).join('');
 
   resWrap.style.display='block';
-  resGrid.querySelectorAll('.card').forEach(el=>el.addEventListener('click',()=>openSheet(allHits[+el.dataset.i])));
-  inp.blur();
-  setTimeout(()=>resWrap.scrollIntoView({behavior:'smooth',block:'start'}),60);
+  resGrid.querySelectorAll('.card').forEach(el=>{
+    el.addEventListener('click',()=>openSheet(allHits[+el.dataset.i]));
+  });
+  setTimeout(()=>resWrap.scrollIntoView({behavior:'smooth',block:'start'}),80);
 }
 
-/* sheet */
+/* open detail sheet */
 function openSheet(item){
+  if(!item) return;
   shName.textContent=item.name||'(Unnamed)';
   shErp.textContent=item.erp||'—';
   const p=isNA(item.phone)?null:item.phone;
@@ -1061,74 +1064,89 @@ function openSheet(item){
   overlay.classList.add('open');
   document.body.style.overflow='hidden';
 }
+
+/* close sheet */
 const closeSheet=()=>{overlay.classList.remove('open');document.body.style.overflow=''};
 shClose.addEventListener('click',closeSheet);
-overlay.addEventListener('click',e=>{if(e.target===overlay)closeSheet()});
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeSheet();});
 
-/* clear */
+/* reset results */
 function reset(){
   resWrap.style.display='none';
   emptyEl.style.display='none';
   closeDD();
 }
-clrBtn.addEventListener('click',()=>{inp.value='';clrBtn.classList.remove('show');reset();inp.focus()});
-resClear.addEventListener('click',()=>{inp.value='';clrBtn.classList.remove('show');reset();inp.focus()});
+resClear.addEventListener('click',()=>{inp.value='';reset();inp.focus();});
 
-/* input events */
+/* search button */
+execBtn.addEventListener('click',()=>go());
+
+/* keyboard on input */
 inp.addEventListener('focus',()=>{
   sw.classList.add('focused');
   const q=inp.value.trim();
-  if(q)renderDD(srch(q),q);
+  if(q) renderDD(srch(q),q);
 });
-inp.addEventListener('blur',()=>{sw.classList.remove('focused');setTimeout(closeDD,200)});
+inp.addEventListener('blur',()=>{
+  sw.classList.remove('focused');
+  setTimeout(closeDD,200);
+});
 inp.addEventListener('input',()=>{
-  clrBtn.classList.toggle('show',inp.value.length>0);
-  /* hide old results when user edits — prevents stale results showing */
-  resWrap.style.display='none';
-  emptyEl.style.display='none';
   clearTimeout(dbt);
   dbt=setTimeout(()=>{
     const q=inp.value.trim();
-    if(!q){closeDD();return}
-    renderDD(srch(q),q);  /* suggestions only — never auto-executes go() */
-  },300);
+    if(!q){closeDD();return;}
+    renderDD(srch(q),q);
+  },150);
 });
 inp.addEventListener('keydown',e=>{
   const items=ddList.querySelectorAll('.dd-item');
-  if(e.key==='ArrowDown'){e.preventDefault();const n=Math.min(activeIdx+1,items.length-1);items.forEach((el,j)=>el.classList.toggle('hi',j===n));activeIdx=n}
-  else if(e.key==='ArrowUp'){e.preventDefault();const n=Math.max(activeIdx-1,0);items.forEach((el,j)=>el.classList.toggle('hi',j===n));activeIdx=n}
-  else if(e.key==='Enter'){
+  if(e.key==='ArrowDown'){
     e.preventDefault();
-    if(activeIdx>=0&&filtered[activeIdx])inp.value=filtered[activeIdx].name||filtered[activeIdx].erp||inp.value;
-    go(inp.value);
+    const n=Math.min(activeIdx+1,items.length-1);
+    items.forEach((el,j)=>el.classList.toggle('hi',j===n));
+    activeIdx=n;
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    const n=Math.max(activeIdx-1,0);
+    items.forEach((el,j)=>el.classList.toggle('hi',j===n));
+    activeIdx=n;
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(activeIdx>=0&&filtered[activeIdx]){
+      inp.value=filtered[activeIdx].name||filtered[activeIdx].erp||inp.value;
+    }
+    go();
+  } else if(e.key==='Escape'){
+    closeDD();closeSheet();inp.blur();
   }
-  else if(e.key==='Escape'){closeDD();closeSheet();inp.blur()}
 });
-execBtn.addEventListener('click',()=>go(inp.value));
+
+/* prevent dropdown closing when clicking inside it */
 ddEl.addEventListener('mousedown',e=>e.preventDefault());
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+
+/* escape key */
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
 
 /* copy phone */
-const copyBtn=document.getElementById('copyPhoneBtn');
 copyBtn.addEventListener('click',()=>{
-  const val=document.getElementById('shPhone').textContent.trim();
-  if(!val||val==='Not available')return;
+  const val=shPhone.textContent.trim();
+  if(!val||val==='Not available') return;
   navigator.clipboard.writeText(val).then(()=>{
     copyBtn.classList.add('copied');
-    copyBtn.innerHTML=`<svg viewBox="0 0 16 16" style="width:10px;height:10px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round"><path d="M2 8l4 4 8-8"/></svg> COPIED`;
+    copyBtn.innerHTML='<svg viewBox="0 0 16 16" style="width:10px;height:10px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round"><path d="M2 8l4 4 8-8"/></svg> COPIED';
     setTimeout(()=>{
       copyBtn.classList.remove('copied');
-      copyBtn.innerHTML=`<svg viewBox="0 0 16 16" style="width:10px;height:10px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round"><rect x="5" y="5" width="9" height="11" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v9A1.5 1.5 0 003.5 14H5"/></svg> COPY`;
+      copyBtn.innerHTML='<svg viewBox="0 0 16 16" style="width:10px;height:10px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round"><rect x="5" y="5" width="9" height="11" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v9A1.5 1.5 0 003.5 14H5"/></svg> COPY';
     },1800);
   }).catch(()=>{});
 });
 
-/* modal close on backdrop click handled by overlay listener above */
-
-/* swipe down to close on mobile */
+/* swipe down to close sheet */
 let _sy=0;
-sheet.addEventListener('touchstart',e=>{_sy=e.touches[0].clientY},{passive:true});
-sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)closeSheet()},{passive:true});
+sheet.addEventListener('touchstart',e=>{_sy=e.touches[0].clientY;},{passive:true});
+sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)closeSheet();},{passive:true});
+
 })();
 
 /* sakura petals */
@@ -1143,36 +1161,25 @@ sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)clos
   }
 })();
 
-/* theme — defaults to system, user override persists */
+/* theme */
 (()=>{
   const btn=document.getElementById('themeToggle');
   const lbl=document.getElementById('themeLabel');
   const mq=window.matchMedia('(prefers-color-scheme: light)');
-
   function applyTheme(isLight){
     document.body.classList.toggle('light',isLight);
     lbl.textContent=isLight?'Dark':'Light';
   }
-
   const saved=localStorage.getItem('phantom-theme');
-  if(saved){
-    applyTheme(saved==='light');
-  } else {
-    applyTheme(mq.matches); /* use system default */
-  }
-
-  /* follow system if no manual override set */
-  mq.addEventListener('change',e=>{
-    if(!localStorage.getItem('phantom-theme')) applyTheme(e.matches);
-  });
-
+  if(saved){applyTheme(saved==='light');}
+  else{applyTheme(mq.matches);}
+  mq.addEventListener('change',e=>{if(!localStorage.getItem('phantom-theme'))applyTheme(e.matches);});
   btn.addEventListener('click',()=>{
     const isLight=!document.body.classList.contains('light');
     applyTheme(isLight);
     localStorage.setItem('phantom-theme',isLight?'light':'dark');
   });
 })();
-
 
 </script>
 </body>
