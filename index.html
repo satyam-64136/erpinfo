@@ -938,13 +938,12 @@ fetch('./data.json')
   .then(r=>r.json())
   .then(raw=>{
     DB=raw.map(o=>({
-      name :String(o['Name']||'').trim(),
-      erp  :String(o['ERP ID']||'').trim(),
-      email:String(o['Email']||'').trim(),
-      phone:String(o['Phone Numbers']||'').trim(),
-      _s   :''
+      name :String(o.name ||'').trim(),
+      erp  :String(o.erp  ||'').trim(),
+      email:String(o.email||'').trim(),
+      phone:String(o.phone||'').trim(),
+      _s   :String(o.search||'').toLowerCase()
     }));
-    DB.forEach(d=>{d._s=`${d.name} ${d.erp} ${d.email} ${d.phone}`.toLowerCase()});
     loader.style.display='none';
     inp.focus();
   })
