@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phantom Admin · DIT</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;
+  --bg2:#111118;
+  --bg3:#18181f;
+  --border:rgba(255,255,255,.07);
+  --border2:rgba(255,255,255,.13);
+  --text:#c8c8d8;
+  --text2:#7878a0;
+  --text3:#404060;
+  --ink:#eeeeff;
+  --green:#4ade80;
+  --green2:rgba(74,222,128,.12);
+  --blue:#60a5fa;
+  --blue2:rgba(96,165,250,.12);
+  --sakura:#e8607a;
+  --sakura2:rgba(232,96,122,.12);
+  --gold:#d4922a;
+  --sans:'Inter',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans)}
+body{display:flex;flex-direction:column;min-height:100dvh}
+
+/* ── LOGIN GATE ── */
+#gate{
+  position:fixed;inset:0;z-index:999;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);
+  transition:opacity .4s ease;
+}
+#gate.hidden{opacity:0;pointer-events:none}
+.gate-card{
+  width:min(90vw,360px);
+  padding:40px 32px 36px;
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  border-radius:16px;
+  text-align:center;
+  box-shadow:0 24px 80px rgba(0,0,0,.6);
+}
+.gate-icon{font-size:32px;margin-bottom:16px}
+.gate-title{font-size:22px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.gate-sub{font-size:13px;color:var(--text2);margin-bottom:28px;line-height:1.6}
+.gate-google{display:flex;justify-content:center}
+#gate-error{
+  margin-top:18px;font-size:12px;
+  color:var(--sakura);display:none;
+  padding:10px 14px;background:var(--sakura2);
+  border-radius:8px;border:1px solid rgba(232,96,122,.2);
+}
+
+/* ── TOPBAR ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 28px;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:10;
+}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-logo{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.topbar-badge{
+  font-size:9px;font-family:var(--mono);letter-spacing:.15em;
+  color:var(--text2);background:var(--bg3);
+  border:1px solid var(--border2);border-radius:99px;
+  padding:3px 10px;text-transform:uppercase;
+}
+.topbar-right{display:flex;align-items:center;gap:14px}
+#admin-avatar{
+  width:30px;height:30px;border-radius:50%;
+  object-fit:cover;border:1.5px solid var(--border2);
+}
+#admin-name{font-size:13px;color:var(--text2)}
+.signout-btn{
+  font-size:11px;font-family:var(--mono);
+  color:var(--text3);background:none;border:1px solid var(--border);
+  border-radius:99px;padding:5px 12px;cursor:pointer;
+  transition:color .2s,border-color .2s;
+}
+.signout-btn:hover{color:var(--sakura);border-color:var(--sakura)}
+
+/* ── MAIN ── */
+main{flex:1;padding:28px;max-width:1100px;width:100%;margin:0 auto}
+
+/* ── STAT CARDS ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+.stat{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;padding:20px 22px;
+  position:relative;overflow:hidden;
+}
+.stat::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--accent,linear-gradient(90deg,var(--sakura),var(--gold)));
+}
+.stat-label{font-size:10px;font-family:var(--mono);letter-spacing:.15em;color:var(--text3);text-transform:uppercase;margin-bottom:10px}
+.stat-val{font-size:32px;font-weight:700;color:var(--ink);line-height:1}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:6px}
+
+/* ── SECTION ── */
+.section{margin-bottom:28px}
+.section-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+}
+.section-title{
+  font-size:12px;font-family:var(--mono);letter-spacing:.15em;
+  color:var(--text2);text-transform:uppercase;
+}
+.section-count{
+  font-size:11px;color:var(--text3);font-family:var(--mono);
+}
+
+/* ── TABLE ── */
+.tbl-wrap{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;overflow:hidden;
+}
+table{width:100%;border-collapse:collapse}
+th{
+  font-size:9px;font-family:var(--mono);letter-spacing:.18em;
+  color:var(--text3);text-transform:uppercase;text-align:left;
+  padding:11px 18px;
+  background:var(--bg3);border-bottom:1px solid var(--border);
+  font-weight:500;
+}
+td{
+  padding:12px 18px;font-size:13px;color:var(--text);
+  border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.td-email{font-family:var(--mono);font-size:12px;color:var(--blue)}
+.td-query{font-family:var(--mono);font-size:12px;color:var(--green)}
+.td-time{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.td-count{
+  font-family:var(--mono);font-size:11px;
+  background:var(--green2);color:var(--green);
+  border-radius:99px;padding:2px 8px;display:inline-block;
+}
+.td-count.zero{background:var(--sakura2);color:var(--sakura)}
+
+/* avatar initial circle */
+.td-avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--blue2);color:var(--blue);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:600;flex-shrink:0;
+}
+
+/* ── EMPTY / LOADING states ── */
+.tbl-placeholder{
+  padding:40px 20px;text-align:center;
+  font-size:13px;color:var(--text3);
+}
+.spinner{
+  display:inline-block;width:16px;height:16px;border-radius:50%;
+  border:2px solid var(--border2);border-top-color:var(--blue);
+  animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── REFRESH BTN ── */
+.refresh-btn{
+  font-size:11px;font-family:var(--mono);
+  color:var(--text2);background:var(--bg3);
+  border:1px solid var(--border);border-radius:99px;
+  padding:5px 14px;cursor:pointer;
+  transition:color .2s,border-color .2s;letter-spacing:.08em;
+}
+.refresh-btn:hover{color:var(--ink);border-color:var(--border2)}
+
+/* ── SETUP BANNER ── */
+#setup-banner{
+  background:rgba(212,146,42,.08);border:1px solid rgba(212,146,42,.2);
+  border-radius:12px;padding:18px 22px;margin-bottom:24px;
+  font-size:13px;color:var(--text);line-height:1.8;display:none;
+}
+#setup-banner strong{color:var(--gold)}
+#setup-banner code{
+  font-family:var(--mono);font-size:11px;
+  background:rgba(255,255,255,.06);border-radius:4px;
+  padding:1px 6px;color:var(--blue);
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN GATE ── -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-icon">🔐</div>
+    <div class="gate-title">Admin Access</div>
+    <div class="gate-sub">This page is restricted to authorised administrators only.<br>Sign in with your Google account to continue.</div>
+    <div class="gate-google">
+      <div id="g_id_onload"
+           data-client_id="587736384935-vt7rdb5ua49fs44msdckpvja10ad06ur.apps.googleusercontent.com"
+           data-context="signin"
+           data-ux_mode="popup"
+           data-callback="onAdminSignIn"
+           data-auto_prompt="false">
+      </div>
+      <div class="g_id_signin"
+           data-type="standard"
+           data-shape="pill"
+           data-theme="filled_blue"
+           data-text="signin_with"
+           data-size="large"
+           data-logo_alignment="left"
+           data-width="260">
+      </div>
+    </div>
+    <div id="gate-error">⛔ Access denied. This dashboard is restricted to the site administrator.</div>
+  </div>
+</div>
+
+<!-- ── APP (hidden until authed) ── -->
+<div id="app" style="display:none;flex-direction:column;min-height:100dvh">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">⛩ Phantom Admin</span>
+      <span class="topbar-badge">DIT · Internal</span>
+    </div>
+    <div class="topbar-right">
+      <span id="admin-name"></span>
+      <img id="admin-avatar" src="" alt="" referrerpolicy="no-referrer">
+      <button class="signout-btn" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- Setup instructions banner (shown when URL not configured) -->
+    <div id="setup-banner">
+      <strong>⚠ Apps Script URL not configured yet.</strong> Data logging is disabled. To enable it:<br>
+      1. Open <strong>Google Sheets</strong> → create a new spreadsheet → name it <strong>Phantom Logs</strong><br>
+      2. Go to <strong>Extensions → Apps Script</strong> → paste the script from the instructions<br>
+      3. Click <strong>Deploy → New deployment → Web app</strong> → set access to <strong>Anyone</strong> → copy the URL<br>
+      4. In <code>index.html</code> and <code>admin.html</code>, replace <code>YOUR_APPS_SCRIPT_URL</code> with the copied URL<br>
+      5. Push to GitHub — logs will start appearing here automatically.
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats">
+      <div class="stat" style="--accent:linear-gradient(90deg,var(--blue),#818cf8)">
+        <div class="stat-label">Total Logins</div>
+        <div class="stat-val" id="stat-logins">—</div>
+        <div class="stat-sub" id="stat-logins-sub">loading…</div>
+      </div>
+      <div class="stat" style="--accent:linear-gradient(90deg,var(--green),#34d399)">
+        <div class="stat-label">Total Searches</div>
+        <div class="stat-val" id="stat-searches">—</div>
+        <div class="stat-sub" id="stat-searches-sub">loading…</div>
+      </div>
+      <div class="stat" style="--accent:linear-gradient(90deg,var(--sakura),var(--gold))">
+        <div class="stat-label">Unique Users</div>
+        <div class="stat-val" id="stat-users">—</div>
+        <div class="stat-sub" id="stat-users-sub">loading…</div>
+      </div>
+      <div class="stat" style="--accent:linear-gradient(90deg,#a78bfa,#818cf8)">
+        <div class="stat-label">Top Query</div>
+        <div class="stat-val" id="stat-top" style="font-size:18px;padding-top:4px">—</div>
+        <div class="stat-sub" id="stat-top-sub">loading…</div>
+      </div>
+    </div>
+
+    <!-- Recent Logins -->
+    <div class="section">
+      <div class="section-hdr">
+        <span class="section-title">Recent Logins</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="section-count" id="login-count"></span>
+          <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="login-tbody">
+            <tr><td colspan="3" class="tbl-placeholder"><span class="spinner"></span>Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent Searches -->
+    <div class="section">
+      <div class="section-hdr">
+        <span class="section-title">Recent Searches</span>
+        <span class="section-count" id="search-count"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Query</th>
+              <th>Results</th>
+              <th>Searched by</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="search-tbody">
+            <tr><td colspan="4" class="tbl-placeholder"><span class="spinner"></span>Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ── CONFIG ── */
+const ADMIN_EMAIL      = 'satyam64136@gmail.com';
+const APPS_SCRIPT_URL  = 'YOUR_APPS_SCRIPT_URL'; // paste your deployed URL here
+
+/* ── PARSE JWT ── */
+function parseJwt(token){
+  try{ return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+  catch(e){ return {}; }
+}
+
+/* ── SIGN IN CALLBACK ── */
+window.onAdminSignIn = function(response){
+  if(!response?.credential) return;
+  const p = parseJwt(response.credential);
+  if(p.email !== ADMIN_EMAIL){
+    document.getElementById('gate-error').style.display = 'block';
+    return;
+  }
+  // Auth passed
+  sessionStorage.setItem('phantom-admin-auth', '1');
+  sessionStorage.setItem('phantom-admin-name', p.name || p.email);
+  sessionStorage.setItem('phantom-admin-pic',  p.picture || '');
+  sessionStorage.setItem('phantom-admin-email', p.email);
+  showApp(p.name || p.email, p.picture || '');
+};
+
+function showApp(name, pic){
+  const gate = document.getElementById('gate');
+  gate.style.opacity = '0';
+  setTimeout(()=>{ gate.classList.add('hidden'); gate.style.display='none'; }, 400);
+
+  const app = document.getElementById('app');
+  app.style.display = 'flex';
+
+  document.getElementById('admin-name').textContent = name.split(' ')[0];
+  const img = document.getElementById('admin-avatar');
+  if(pic){ img.src = pic; } else { img.style.display='none'; }
+
+  // Show setup banner if URL not configured
+  if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL'){
+    document.getElementById('setup-banner').style.display = 'block';
+    showNoData();
+  } else {
+    loadData();
+  }
+}
+
+function signOut(){
+  sessionStorage.clear();
+  location.reload();
+}
+
+/* ── RESTORE SESSION ── */
+if(sessionStorage.getItem('phantom-admin-auth') === '1'){
+  const name = sessionStorage.getItem('phantom-admin-name') || '';
+  const pic  = sessionStorage.getItem('phantom-admin-pic')  || '';
+  // Small delay so GIS lib loads fully before we skip it
+  setTimeout(()=>showApp(name, pic), 100);
+}
+
+/* ── LOAD DATA FROM APPS SCRIPT ── */
+async function loadData(){
+  if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL') return;
+  try {
+    const res  = await fetch(APPS_SCRIPT_URL + '?action=read');
+    const data = await res.json();
+    renderLogins(data.logins  || []);
+    renderSearches(data.searches || []);
+    renderStats(data.logins || [], data.searches || []);
+  } catch(e) {
+    document.getElementById('login-tbody').innerHTML  = `<tr><td colspan="3" class="tbl-placeholder">⚠ Could not load data. Check Apps Script URL.</td></tr>`;
+    document.getElementById('search-tbody').innerHTML = `<tr><td colspan="4" class="tbl-placeholder">⚠ Could not load data.</td></tr>`;
+  }
+}
+
+function showNoData(){
+  document.getElementById('login-tbody').innerHTML  = `<tr><td colspan="3" class="tbl-placeholder">No data yet — configure Apps Script URL to start logging.</td></tr>`;
+  document.getElementById('search-tbody').innerHTML = `<tr><td colspan="4" class="tbl-placeholder">No data yet — configure Apps Script URL to start logging.</td></tr>`;
+  ['stat-logins','stat-searches','stat-users','stat-top'].forEach(id=>{ document.getElementById(id).textContent='—'; });
+  ['stat-logins-sub','stat-searches-sub','stat-users-sub','stat-top-sub'].forEach(id=>{ document.getElementById(id).textContent='not configured'; });
+}
+
+function fmtTime(ts){
+  if(!ts) return '—';
+  try{
+    const d = new Date(ts);
+    return d.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});
+  }catch(e){ return ts; }
+}
+
+function initials(name){
+  return (name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+}
+
+function renderLogins(rows){
+  // newest first, cap at 50
+  const sorted = [...rows].reverse().slice(0,50);
+  document.getElementById('login-count').textContent = rows.length + ' total';
+  if(!sorted.length){
+    document.getElementById('login-tbody').innerHTML = `<tr><td colspan="3" class="tbl-placeholder">No logins recorded yet.</td></tr>`;
+    return;
+  }
+  document.getElementById('login-tbody').innerHTML = sorted.map(r=>`
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="td-avatar">${initials(r.name)}</div>
+          <span style="font-weight:500;color:var(--ink)">${esc(r.name||'Unknown')}</span>
+        </div>
+      </td>
+      <td class="td-email">${esc(r.email||'—')}</td>
+      <td class="td-time">${fmtTime(r.ts)}</td>
+    </tr>`).join('');
+}
+
+function renderSearches(rows){
+  const sorted = [...rows].reverse().slice(0,100);
+  document.getElementById('search-count').textContent = rows.length + ' total';
+  if(!sorted.length){
+    document.getElementById('search-tbody').innerHTML = `<tr><td colspan="4" class="tbl-placeholder">No searches recorded yet.</td></tr>`;
+    return;
+  }
+  document.getElementById('search-tbody').innerHTML = sorted.map(r=>`
+    <tr>
+      <td class="td-query">${esc(r.query||'—')}</td>
+      <td><span class="td-count ${r.results==0?'zero':''}">${r.results??'—'}</span></td>
+      <td class="td-email" style="font-size:11px">${esc(r.email||'—')}</td>
+      <td class="td-time">${fmtTime(r.ts)}</td>
+    </tr>`).join('');
+}
+
+function renderStats(logins, searches){
+  document.getElementById('stat-logins').textContent = logins.length;
+  const uniq = new Set(logins.map(r=>r.email)).size;
+  document.getElementById('stat-users').textContent  = uniq;
+  document.getElementById('stat-searches').textContent = searches.length;
+
+  // Top query
+  const freq = {};
+  searches.forEach(r=>{ if(r.query) freq[r.query]=(freq[r.query]||0)+1; });
+  const top = Object.entries(freq).sort((a,b)=>b[1]-a[1])[0];
+  if(top){
+    document.getElementById('stat-top').textContent     = top[0];
+    document.getElementById('stat-top-sub').textContent = top[1]+' searches';
+  } else {
+    document.getElementById('stat-top').textContent = '—';
+  }
+
+  // Last login time
+  const lastLogin = logins[logins.length-1];
+  document.getElementById('stat-logins-sub').textContent  = lastLogin ? 'Last: '+fmtTime(lastLogin.ts) : 'none yet';
+  document.getElementById('stat-searches-sub').textContent = searches.length ? 'across '+uniq+' user'+(uniq!==1?'s':'') : 'none yet';
+  document.getElementById('stat-users-sub').textContent   = uniq ? 'unique accounts' : 'none yet';
+}
+
+function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+</script>
+</body>
+</html>
