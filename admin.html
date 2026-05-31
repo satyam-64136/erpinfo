@@ -330,7 +330,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <script>
 /* ── CONFIG ── */
 const ADMIN_EMAIL      = 'satyam64136@gmail.com';
-const APPS_SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycbwftWdScgoCiSp4--0RTXtGwrMcz0yjwoG2Xv4hjHAyBEaRdRszr0ii4tV4QQBRDCXP/exec';
+const APPS_SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycbzwvwcUKQnOsbwmGJPWaxbfzIWpXq52ToDnDMGrO3QGN6B9DDl225lcrzRaKml78qra/exec';
 
 /* ── PARSE JWT ── */
 function parseJwt(token){
@@ -389,18 +389,39 @@ if(sessionStorage.getItem('phantom-admin-auth') === '1'){
 }
 
 /* ── LOAD DATA FROM APPS SCRIPT ── */
-async function loadData(){
+function loadData(){
   if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL') return;
-  try {
-    const res  = await fetch(APPS_SCRIPT_URL + '?action=read');
-    const data = await res.json();
-    renderLogins(data.logins  || []);
+
+  // Show loading state
+  document.getElementById('login-tbody').innerHTML  = `<tr><td colspan="3" class="tbl-placeholder"><span class="spinner"></span>Loading…</td></tr>`;
+  document.getElementById('search-tbody').innerHTML = `<tr><td colspan="4" class="tbl-placeholder"><span class="spinner"></span>Loading…</td></tr>`;
+
+  // JSONP bypasses CORS — Apps Script supports ?callback= natively
+  const cbName = '__phantomCb_' + Date.now();
+  const script  = document.createElement('script');
+  const timeout = setTimeout(()=>{
+    cleanup();
+    document.getElementById('login-tbody').innerHTML  = `<tr><td colspan="3" class="tbl-placeholder">⚠ Request timed out. Check Apps Script deployment.</td></tr>`;
+    document.getElementById('search-tbody').innerHTML = `<tr><td colspan="4" class="tbl-placeholder">⚠ Request timed out.</td></tr>`;
+  }, 12000);
+
+  function cleanup(){ clearTimeout(timeout); delete window[cbName]; if(script.parentNode) script.parentNode.removeChild(script); }
+
+  window[cbName] = function(data){
+    cleanup();
+    renderLogins(data.logins   || []);
     renderSearches(data.searches || []);
-    renderStats(data.logins || [], data.searches || []);
-  } catch(e) {
-    document.getElementById('login-tbody').innerHTML  = `<tr><td colspan="3" class="tbl-placeholder">⚠ Could not load data. Check Apps Script URL.</td></tr>`;
-    document.getElementById('search-tbody').innerHTML = `<tr><td colspan="4" class="tbl-placeholder">⚠ Could not load data.</td></tr>`;
-  }
+    renderStats(data.logins    || [], data.searches || []);
+  };
+
+  script.onerror = function(){
+    cleanup();
+    document.getElementById('login-tbody').innerHTML  = `<tr><td colspan="3" class="tbl-placeholder">⚠ Could not reach Apps Script. Make sure deployment access is set to "Anyone".</td></tr>`;
+    document.getElementById('search-tbody').innerHTML = `<tr><td colspan="4" class="tbl-placeholder">⚠ Could not reach Apps Script.</td></tr>`;
+  };
+
+  script.src = APPS_SCRIPT_URL + '?callback=' + cbName;
+  document.head.appendChild(script);
 }
 
 function showNoData(){
