@@ -159,6 +159,29 @@ tr:hover td{background:rgba(255,255,255,.02)}
   font-size:12px;font-weight:600;flex-shrink:0;
 }
 
+/* Ban toggle */
+.ban-toggle{
+  display:inline-flex;align-items:center;gap:7px;
+  cursor:pointer;border:none;background:none;padding:0;
+}
+.ban-pill{
+  width:36px;height:20px;border-radius:99px;
+  position:relative;transition:background .25s;
+  background:var(--bg3);border:1px solid var(--border2);
+  flex-shrink:0;
+}
+.ban-pill::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:12px;height:12px;border-radius:50%;
+  background:var(--text3);transition:transform .25s,background .25s;
+}
+.ban-toggle.banned .ban-pill{background:rgba(232,96,122,.25);border-color:var(--sakura)}
+.ban-toggle.banned .ban-pill::after{transform:translateX(16px);background:var(--sakura)}
+.ban-toggle-label{font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:.08em}
+.ban-toggle.banned .ban-toggle-label{color:var(--sakura)}
+.ban-row-banned td{opacity:.5}
+.ban-row-banned .td-email{text-decoration:line-through}
+
 /* ── EMPTY / LOADING states ── */
 .tbl-placeholder{
   padding:40px 20px;text-align:center;
@@ -291,11 +314,12 @@ tr:hover td{background:rgba(255,255,255,.02)}
             <tr>
               <th>User</th>
               <th>Email</th>
-              <th>Time</th>
+              <th>First Login</th>
+              <th>Ban</th>
             </tr>
           </thead>
           <tbody id="login-tbody">
-            <tr><td colspan="3" class="tbl-placeholder"><span class="spinner"></span>Loading…</td></tr>
+            <tr><td colspan="4" class="tbl-placeholder"><span class="spinner"></span>Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -330,7 +354,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <script>
 /* ── CONFIG ── */
 const ADMIN_EMAIL      = 'satyam64136@gmail.com';
-const APPS_SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycbzwvwcUKQnOsbwmGJPWaxbfzIWpXq52ToDnDMGrO3QGN6B9DDl225lcrzRaKml78qra/exec';
+const APPS_SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycbwftWdScgoCiSp4--0RTXtGwrMcz0yjwoG2Xv4hjHAyBEaRdRszr0ii4tV4QQBRDCXP/exec';
 
 /* ── PARSE JWT ── */
 function parseJwt(token){
@@ -393,7 +417,7 @@ function loadData(){
   if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL') return;
 
   // Show loading state
-  document.getElementById('login-tbody').innerHTML  = `<tr><td colspan="3" class="tbl-placeholder"><span class="spinner"></span>Loading…</td></tr>`;
+  document.getElementById('login-tbody').innerHTML  = `<tr><td colspan="4" class="tbl-placeholder"><span class="spinner"></span>Loading…</td></tr>`;
   document.getElementById('search-tbody').innerHTML = `<tr><td colspan="4" class="tbl-placeholder"><span class="spinner"></span>Loading…</td></tr>`;
 
   // JSONP bypasses CORS — Apps Script supports ?callback= natively
@@ -444,24 +468,52 @@ function initials(name){
 }
 
 function renderLogins(rows){
-  // newest first, cap at 50
-  const sorted = [...rows].reverse().slice(0,50);
-  document.getElementById('login-count').textContent = rows.length + ' total';
-  if(!sorted.length){
-    document.getElementById('login-tbody').innerHTML = `<tr><td colspan="3" class="tbl-placeholder">No logins recorded yet.</td></tr>`;
+  // newest first, cap at 50 — but deduplicate by email (keep first login per user)
+  const seen = new Set();
+  const unique = rows.filter(r=>{ if(seen.has(r.email)) return false; seen.add(r.email); return true; });
+  document.getElementById('login-count').textContent = unique.length + ' unique user' + (unique.length!==1?'s':'') + ' · ' + rows.length + ' sessions';
+  if(!unique.length){
+    document.getElementById('login-tbody').innerHTML = `<tr><td colspan="4" class="tbl-placeholder">No logins recorded yet.</td></tr>`;
     return;
   }
-  document.getElementById('login-tbody').innerHTML = sorted.map(r=>`
-    <tr>
+  document.getElementById('login-tbody').innerHTML = unique.map(r=>{
+    const isBanned = String(r.banned) === '1';
+    return `
+    <tr class="${isBanned?'ban-row-banned':''}">
       <td>
         <div style="display:flex;align-items:center;gap:10px">
-          <div class="td-avatar">${initials(r.name)}</div>
-          <span style="font-weight:500;color:var(--ink)">${esc(r.name||'Unknown')}</span>
+          <div class="td-avatar" style="${isBanned?'background:var(--sakura2);color:var(--sakura)':''}">${initials(r.name)}</div>
+          <span style="font-weight:500;color:${isBanned?'var(--text3)':'var(--ink)'}">${esc(r.name||'Unknown')}</span>
         </div>
       </td>
       <td class="td-email">${esc(r.email||'—')}</td>
       <td class="td-time">${fmtTime(r.ts)}</td>
-    </tr>`).join('');
+      <td>
+        <button class="ban-toggle ${isBanned?'banned':''}" onclick="setBan('${esc(r.email)}', ${isBanned?0:1}, this)" title="${isBanned?'Unban user':'Ban user'}">
+          <div class="ban-pill"></div>
+          <span class="ban-toggle-label">${isBanned?'BANNED':'ALLOW'}</span>
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function setBan(email, value, btnEl){
+  btnEl.style.opacity = '0.5';
+  btnEl.style.pointerEvents = 'none';
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ type: 'ban', email, value })
+    });
+    // Reload data after short delay to let sheet update
+    setTimeout(()=>loadData(), 1200);
+  } catch(e) {
+    btnEl.style.opacity = '1';
+    btnEl.style.pointerEvents = '';
+    alert('Failed to update ban status. Check Apps Script.');
+  }
 }
 
 function renderSearches(rows){
@@ -499,7 +551,9 @@ function renderStats(logins, searches){
 
   // Last login time
   const lastLogin = logins[logins.length-1];
+  const bannedCount = logins.filter(r=>String(r.banned)==='1').length;
   document.getElementById('stat-logins-sub').textContent  = lastLogin ? 'Last: '+fmtTime(lastLogin.ts) : 'none yet';
+  if(bannedCount) document.getElementById('stat-logins-sub').textContent += ' · '+bannedCount+' banned';
   document.getElementById('stat-searches-sub').textContent = searches.length ? 'across '+uniq+' user'+(uniq!==1?'s':'') : 'none yet';
   document.getElementById('stat-users-sub').textContent   = uniq ? 'unique accounts' : 'none yet';
 }
