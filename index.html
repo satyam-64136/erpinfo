@@ -9,7 +9,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 /* ── LOGGING CONFIG ── paste your Apps Script Web App URL here after setup ── */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzwvwcUKQnOsbwmGJPWaxbfzIWpXq52ToDnDMGrO3QGN6B9DDl225lcrzRaKml78qra/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwftWdScgoCiSp4--0RTXtGwrMcz0yjwoG2Xv4hjHAyBEaRdRszr0ii4tV4QQBRDCXP/exec';
 
 function logEvent(type, data){
   if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL') return;
@@ -1076,16 +1076,19 @@ const copyBtn =document.getElementById('copyPhoneBtn');
 
 /* load data */
 fetch('./data.json')
-  .then(r=>r.json())
+  .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
   .then(raw=>{
     DB=raw.map(o=>({
-      name :String(o['Name']||'').trim(),
-      erp  :String(o['ERP ID']||'').trim(),
-      email:String(o['Email']||'').trim(),
-      phone:String(o['Phone Numbers']||'').trim(),
-      _s   :''
+      name :String(o['name']||o['Name']||'').trim(),
+      erp  :String(o['erp']||o['ERP ID']||'').trim(),
+      email:String(o['email']||o['Email']||'').trim(),
+      phone:String(o['phone']||o['Phone Numbers']||'').trim(),
+      _s   :String(o['search']||'')
     }));
-    DB.forEach(d=>{d._s=`${d.name} ${d.erp} ${d.email} ${d.phone}`.toLowerCase()});
+    DB.forEach(d=>{
+      if(!d._s) d._s=`${d.name} ${d.erp} ${d.email} ${d.phone}`.toLowerCase();
+      else d._s=d._s.toLowerCase();
+    });
     loader.style.display='none';
     inp.focus();
   })
