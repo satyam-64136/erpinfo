@@ -1300,11 +1300,9 @@ sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)clos
 (()=>{
   const overlay = document.getElementById('login-overlay');
 
-  /* Helper: decode JWT payload without verification (client-side only) */
   function parseJwt(token){
-    try{
-      return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-    }catch(e){ return {}; }
+    try{ return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+    catch(e){ return {}; }
   }
 
   /* Already signed in this session — skip gate immediately */
@@ -1313,74 +1311,89 @@ sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)clos
     return;
   }
 
-  /* Block scroll while gate is showing */
   document.body.style.overflow = 'hidden';
 
-  /* GIS calls this global function after the user picks an account */
+  /* GIS callback */
   window.onGoogleSignIn = function(response){
     if(!response || !response.credential) return;
-
     const payload = parseJwt(response.credential);
     const name    = payload.name    || payload.email || 'User';
     const email   = payload.email   || '';
     const picture = payload.picture || '';
-
-    /* Check ban list before granting access */
-    checkBanAndLogin(name, email, picture);
+    checkBan(name, email, picture);
   };
 
-  function checkBanAndLogin(name, email, picture){
+  function checkBan(name, email, picture){
+    /* Show a subtle checking state on the card */
+    const note = document.querySelector('.login-note');
+    if(note) note.textContent = 'Verifying access…';
+
     if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL'){
       grantAccess(name, email, picture);
       return;
     }
-    /* Use JSONP to fetch banned list */
-    const cbName = '__banCheck_' + Date.now();
+
+    /* JSONP — passes only email to a lightweight ban-check action */
+    const cbName = '__bc_' + Date.now();
     const script  = document.createElement('script');
-    const timeout = setTimeout(()=>{
+    let done = false;
+
+    const timer = setTimeout(()=>{
+      if(done) return;
+      done = true;
       cleanup();
-      grantAccess(name, email, picture); // fail open if check times out
-    }, 8000);
-    function cleanup(){ clearTimeout(timeout); delete window[cbName]; if(script.parentNode) script.parentNode.removeChild(script); }
+      /* Timeout: log and grant access so login isn't blocked */
+      grantAccess(name, email, picture);
+    }, 15000);
+
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+
     window[cbName] = function(data){
+      if(done) return;
+      done = true;
       cleanup();
       const banned = data.banned || [];
-      if(banned.includes(email)){
-        showBanned(name);
+      if(banned.map(b=>b.toLowerCase()).includes(email.toLowerCase())){
+        showBanned();
       } else {
         grantAccess(name, email, picture);
       }
     };
-    script.onerror = function(){ cleanup(); grantAccess(name, email, picture); };
-    script.src = APPS_SCRIPT_URL + '?callback=' + cbName;
+
+    script.onerror = function(){
+      if(done) return;
+      done = true;
+      cleanup();
+      grantAccess(name, email, picture);
+    };
+
+    /* Use action=bancheck so Apps Script only returns the banned array — fast */
+    script.src = APPS_SCRIPT_URL + '?action=bancheck&callback=' + cbName;
     document.head.appendChild(script);
   }
 
-  function showBanned(name){
-    /* Replace login card content with a banned message */
+  function showBanned(){
     const card = document.querySelector('.login-card');
     card.innerHTML = `
       <div style="font-size:40px;margin-bottom:16px">🚫</div>
       <div style="font-family:'Shippori Mincho',serif;font-size:22px;font-weight:800;color:var(--ink);margin-bottom:8px">Access Revoked</div>
       <div style="font-size:11px;letter-spacing:.3em;color:var(--text3);margin-bottom:20px;font-family:'Noto Serif JP',serif">アクセス拒否</div>
       <div style="font-size:13px;color:var(--text2);line-height:1.8;max-width:260px;text-align:center">
-        Your account has been banned from accessing Phantom Search.<br>
-        Contact the administrator if you believe this is an error.
-      </div>
-    `;
+        Your account has been banned from Phantom Search.<br>Contact the administrator if this is an error.
+      </div>`;
   }
 
   function grantAccess(name, email, picture){
-    /* Save to session */
     sessionStorage.setItem('phantom-auth',       '1');
     sessionStorage.setItem('phantom-user-name',  name);
     sessionStorage.setItem('phantom-user-email', email);
     sessionStorage.setItem('phantom-user-pic',   picture);
-
-    /* Log login event */
     logEvent('login', { name, email });
 
-    /* Animate overlay out */
     overlay.style.transition = 'opacity .45s ease, transform .45s ease';
     overlay.style.opacity    = '0';
     overlay.style.transform  = 'scale(1.03)';
@@ -1391,7 +1404,6 @@ sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)clos
     }, 460);
   }
 
-  /* Welcome toast shown after sign-in */
   function showWelcomeToast(name, pic){
     const toast = document.createElement('div');
     toast.style.cssText = `
@@ -1412,15 +1424,11 @@ sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)clos
       : `<div style="width:26px;height:26px;border-radius:50%;background:var(--sakura);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0">${firstName?firstName[0].toUpperCase():'✓'}</div>`;
     toast.innerHTML = avatarHTML + `<span>${firstName ? 'Welcome, '+firstName+' 👋' : 'Signed in 👋'}</span>`;
     document.body.appendChild(toast);
-    requestAnimationFrame(()=>{
-      toast.style.opacity   = '1';
-      toast.style.transform = 'translateX(-50%) translateY(0)';
-    });
+    requestAnimationFrame(()=>{ toast.style.opacity='1'; toast.style.transform='translateX(-50%) translateY(0)'; });
     setTimeout(()=>{
-      toast.style.opacity   = '0';
-      toast.style.transform = 'translateX(-50%) translateY(12px)';
-      setTimeout(()=>toast.remove(), 400);
-    }, 3200);
+      toast.style.opacity='0'; toast.style.transform='translateX(-50%) translateY(12px)';
+      setTimeout(()=>toast.remove(),400);
+    }, 3000);
   }
 })();
 

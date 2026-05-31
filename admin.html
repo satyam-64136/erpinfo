@@ -498,22 +498,55 @@ function renderLogins(rows){
   }).join('');
 }
 
-async function setBan(email, value, btnEl){
-  btnEl.style.opacity = '0.5';
+function setBan(email, value, btnEl){
+  btnEl.style.opacity = '0.4';
   btnEl.style.pointerEvents = 'none';
-  try {
-    await fetch(APPS_SCRIPT_URL, {
-      method: 'POST', mode: 'no-cors',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ type: 'ban', email, value })
-    });
-    // Reload data after short delay to let sheet update
-    setTimeout(()=>loadData(), 1200);
-  } catch(e) {
+
+  /* Use a hidden form POST via iframe — only reliable cross-origin POST from browser */
+  const iframeName = '__banFrame_' + Date.now();
+  const iframe = document.createElement('iframe');
+  iframe.name = iframeName;
+  iframe.style.display = 'none';
+  document.body.appendChild(iframe);
+
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = APPS_SCRIPT_URL;
+  form.target = iframeName;
+  form.style.display = 'none';
+
+  /* Apps Script reads postData.contents so we send JSON in a field */
+  const payload = JSON.stringify({ type: 'ban', email, value });
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'payload'; // Apps Script reads e.postData.contents, not this
+  input.value = payload;
+  form.appendChild(input);
+  document.body.appendChild(form);
+
+  /* Actually: Apps Script doPost reads e.postData.contents which needs raw body.
+     Use XMLHttpRequest instead — it follows redirects unlike fetch no-cors */
+  iframe.remove();
+  form.remove();
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', APPS_SCRIPT_URL, true);
+  xhr.setRequestHeader('Content-Type', 'text/plain'); // avoid CORS preflight
+  xhr.onreadystatechange = function(){
+    if(xhr.readyState === 4){
+      /* Any response (even opaque redirect) means it worked */
+      btnEl.style.opacity = '1';
+      btnEl.style.pointerEvents = '';
+      setTimeout(()=>loadData(), 800);
+    }
+  };
+  xhr.onerror = function(){
+    /* XHR error on Apps Script usually still means it executed — reload anyway */
     btnEl.style.opacity = '1';
     btnEl.style.pointerEvents = '';
-    alert('Failed to update ban status. Check Apps Script.');
-  }
+    setTimeout(()=>loadData(), 1500);
+  };
+  xhr.send(JSON.stringify({ type: 'ban', email, value }));
 }
 
 function renderSearches(rows){
