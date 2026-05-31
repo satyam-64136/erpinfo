@@ -7,6 +7,22 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@300;400;500;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* ── LOGGING CONFIG ── paste your Apps Script Web App URL here after setup ── */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwftWdScgoCiSp4--0RTXtGwrMcz0yjwoG2Xv4hjHAyBEaRdRszr0ii4tV4QQBRDCXP/exec';
+
+function logEvent(type, data){
+  if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL') return;
+  const email = sessionStorage.getItem('phantom-user-email') || 'unknown';
+  const name  = sessionStorage.getItem('phantom-user-name')  || 'unknown';
+  const payload = { type, email, name, ts: new Date().toISOString(), ...data };
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  }).catch(()=>{});
+}
+</script>
 <style>
 /* ─── RESET ─────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -1143,6 +1159,9 @@ function go(){
   emptyEl.style.display='none';
   resWrap.style.display='none';
 
+  /* Log search event */
+  logEvent('search', { query, results: hits.length });
+
   if(!hits.length){
     emptyEl.style.display='block';
     emptyQ.textContent='"'+query+'"';
@@ -1308,6 +1327,9 @@ sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)clos
     sessionStorage.setItem('phantom-user-name',  name);
     sessionStorage.setItem('phantom-user-email', email);
     sessionStorage.setItem('phantom-user-pic',   picture);
+
+    /* Log login event */
+    logEvent('login', { name, email });
 
     /* Animate overlay out */
     overlay.style.transition = 'opacity .45s ease, transform .45s ease';
