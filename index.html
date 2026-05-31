@@ -6,7 +6,7 @@
 <title>Phantom Search · DIT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@300;400;500;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async></script>
 <script>
 /* ── LOGGING CONFIG ── paste your Apps Script Web App URL here after setup ── */
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwftWdScgoCiSp4--0RTXtGwrMcz0yjwoG2Xv4hjHAyBEaRdRszr0ii4tV4QQBRDCXP/exec';
@@ -872,14 +872,17 @@ body.light .login-card{
     <span class="login-subtitle">Search · DIT</span>
     <div class="login-rule"></div>
     <span class="login-kana">ファントム検索</span>
-    <!-- Google Identity Services renders the real button here -->
+    <!-- One Tap: auto-prompts inline, no popup window -->
     <div id="g_id_onload"
          data-client_id="587736384935-vt7rdb5ua49fs44msdckpvja10ad06ur.apps.googleusercontent.com"
          data-context="signin"
          data-ux_mode="popup"
          data-callback="onGoogleSignIn"
-         data-auto_prompt="false">
+         data-auto_prompt="true"
+         data-itp_support="true"
+         data-cancel_on_tap_outside="false">
     </div>
+    <!-- Fallback button if One Tap is suppressed (e.g. Safari, incognito) -->
     <div class="g_id_signin"
          data-type="standard"
          data-shape="pill"
