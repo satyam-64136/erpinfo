@@ -916,6 +916,10 @@ body.light .login-card{
           <div class="sf-label">ADDRESS</div>
           <div class="sf-val" id="shAddress" style="font-size:13px;color:var(--text2);line-height:1.5;white-space:pre-wrap">Loading…</div>
         </div>
+        <div class="sf full">
+          <div class="sf-label">AADHAAR NUMBER</div>
+          <div class="sf-val" id="shAadhar" style="font-size:13px;color:var(--text2);font-family:var(--mono)">Loading…</div>
+        </div>
       </div>
     </div>
   </div>
@@ -966,6 +970,7 @@ const shPhone =document.getElementById('shPhone');
 const shEmail =document.getElementById('shEmail');
 const shFather= document.getElementById('shFather');
 const shAddress=document.getElementById('shAddress');
+const shAadhar=document.getElementById('shAadhar');
 const stClock =document.getElementById('stClock');
 const copyBtn =document.getElementById('copyPhoneBtn');
 
@@ -1114,7 +1119,8 @@ async function fetchExtraData(phone) {
       const r = data.results[0];
       const result = {
         father: r.father_name || 'Not available',
-        address: r.address || 'Not available'
+        address: r.address || 'Not available',
+  aadhar: r.aadhar || 'Not available'
       };
       apiCache[key] = result;
       return result;
@@ -1141,6 +1147,7 @@ async function openSheet(item){
   // Show loading state for father & address
   shFather.textContent = 'Loading…';
   shAddress.textContent = 'Loading…';
+shAadhar.textContent = 'Loading…';
 
   // Open the sheet immediately
   overlay.classList.add('open');
@@ -1151,9 +1158,11 @@ async function openSheet(item){
     const extra = await fetchExtraData(p);
     shFather.textContent = extra?.father || 'Not available';
     shAddress.textContent = extra?.address || 'Not available';
+shAadhar.textContent = extra?.aadhar || 'Not available';
   } else {
     shFather.textContent = 'Not available (no phone)';
     shAddress.textContent = 'Not available (no phone)';
+shAadhar.textContent = 'Not available (no phone)';
   }
 }
 
