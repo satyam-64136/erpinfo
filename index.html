@@ -1076,7 +1076,7 @@ function go(){
   resGrid.innerHTML=hits.map((r,i)=>{
     const nm=r.name||null;
     const ph=isNA(r.phone)?null:r.phone;
-    const em=isNA(r.email)?null:r.email;
+    const em = r.erp ? `${r.erp}@dit.edu.in` : null;
     const d=Math.min(i,12)*.025;
     return`<div class="card" data-i="${i}" style="animation-delay:${d}s">
       <div class="card-stripe"></div>
@@ -1134,9 +1134,9 @@ async function openSheet(item){
   const p=isNA(item.phone)?null:item.phone;
   shPhone.textContent=p||'Not available';
   shPhone.className='sf-val'+(p?' indigo':' na');
-  const em=isNA(item.email)?null:item.email;
-  shEmail.textContent=em||'Not available';
-  shEmail.className='sf-val'+(em?'':' na');
+  const em = item.erp ? `${item.erp}@dit.edu.in` : null;
+  shEmail.textContent = em || 'Not available';
+  shEmail.className = 'sf-val' + (em ? '' : ' na');
 
   // Show loading state for father & address
   shFather.textContent = 'Loading…';
