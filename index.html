@@ -907,6 +907,16 @@ body.light .login-card{
           <div class="sf-label">EMAIL</div>
           <div class="sf-val" id="shEmail" style="font-size:13px;color:var(--text2)"></div>
         </div>
+        <!-- NEW: Father's Name -->
+        <div class="sf full">
+          <div class="sf-label">FATHER'S NAME</div>
+          <div class="sf-val" id="shFather" style="font-size:14px;color:var(--ink2)"></div>
+        </div>
+        <!-- NEW: Address -->
+        <div class="sf full">
+          <div class="sf-label">ADDRESS</div>
+          <div class="sf-val" id="shAddress" style="font-size:13px;color:var(--text2);line-height:1.5;white-space:pre-wrap"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -952,6 +962,9 @@ const shName  =document.getElementById('shName');
 const shErp   =document.getElementById('shErp');
 const shPhone =document.getElementById('shPhone');
 const shEmail =document.getElementById('shEmail');
+// NEW: references for father and address
+const shFather = document.getElementById('shFather');
+const shAddress= document.getElementById('shAddress');
 const stClock =document.getElementById('stClock');
 const copyBtn =document.getElementById('copyPhoneBtn');
 
@@ -970,10 +983,13 @@ fetch('./data.json')
       erp  :String(o['erp']||o['ERP ID']||'').trim(),
       email:String(o['email']||o['Email']||'').trim(),
       phone:String(o['phone']||o['Phone Numbers']||'').trim(),
+      // NEW: father and address fields
+      father: String(o['father']||o['Father']||'').trim(),
+      address: String(o['address']||o['Address']||'').trim(),
       _s   :String(o['search']||'')
     }));
     DB.forEach(d=>{
-      if(!d._s) d._s=`${d.name} ${d.erp} ${d.email} ${d.phone}`.toLowerCase();
+      if(!d._s) d._s=`${d.name} ${d.erp} ${d.email} ${d.phone} ${d.father} ${d.address}`.toLowerCase();
       else d._s=d._s.toLowerCase();
     });
     loader.style.display='none';
@@ -1087,7 +1103,7 @@ function go(){
   setTimeout(()=>resWrap.scrollIntoView({behavior:'smooth',block:'start'}),80);
 }
 
-/* open detail sheet */
+/* open detail sheet — now includes father and address */
 function openSheet(item){
   if(!item) return;
   shName.textContent=item.name||'(Unnamed)';
@@ -1098,6 +1114,9 @@ function openSheet(item){
   const em=isNA(item.email)?null:item.email;
   shEmail.textContent=em||'Not available';
   shEmail.className='sf-val'+(em?'':' na');
+  // NEW: set father and address
+  shFather.textContent = item.father || 'Not available';
+  shAddress.textContent = item.address || 'Not available';
   overlay.classList.add('open');
   document.body.style.overflow='hidden';
 }
