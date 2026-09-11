@@ -902,7 +902,12 @@ body.light .login-card{
         </div>
         <div class="sf full">
           <div class="sf-label">AADHAAR NUMBER</div>
-          <div class="sf-val" id="shAadhar" style="font-size:13px;color:var(--text2);font-family:var(--mono)">Loading…</div>
+          <div class="sf-val" id="shAadhar" style="font-size:13px;color:var(--text2);font-family:var(--mono)">Not available</div>
+
+          <div class="sf-group" id="shAlternateGroup" style="display:none">
+            <div class="sf-label">ALTERNATE NUMBER</div>
+            <div class="sf-val" id="shAlternate" style="font-size:13px;color:var(--gold);font-family:var(--mono)">Not available</div>
+          </div>
         </div>
       </div>
     </div>
@@ -955,6 +960,8 @@ const shEmail =document.getElementById('shEmail');
 const shFather= document.getElementById('shFather');
 const shAddress=document.getElementById('shAddress');
 const shAadhar=document.getElementById('shAadhar');
+const shAlternateGroup=document.getElementById('shAlternateGroup');
+const shAlternate=document.getElementById('shAlternate');
 const stClock =document.getElementById('stClock');
 const copyBtn =document.getElementById('copyPhoneBtn');
 
@@ -988,8 +995,9 @@ function normalizeRows(raw){
     const father=pick(o,['father_name','Father Name',"Father's Name",'FATHER NAME','father','Father']);
     const address=pick(o,['address','Address','ADDRESS','full_address','Full Address']);
     const aadhaar=pick(o,['aadhaar','Aadhaar','Aadhaar Number','Aadhar','Aadhar Number','aadhaar_number']);
+    const alternate=pick(o,['alternate_number','Alternate Number','Alternate number','alternate','Alternate','alt_number','Alt Number','alternate_phone','Alternate Phone']);
     const supplied=pick(o,['search','Search','SEARCH']);
-    return {name,erp,email,phone,father_name:father,address,aadhaar,_s:(supplied || `${name} ${erp} ${email} ${phone} ${father} ${address} ${aadhaar}`).toLowerCase()};
+    return {name,erp,email,phone,father_name:father,address,aadhaar,alternate_number:alternate,_s:(supplied || `${name} ${erp} ${email} ${phone} ${father} ${address} ${aadhaar} ${alternate}`).toLowerCase()};
   }).filter(o=>o.name||o.erp||o.phone||o.email);
 }
 
@@ -1172,18 +1180,27 @@ async function openSheet(item){
   // Always show local record values first. This fixes empty/blank detail fields.
   shFather.textContent = item.father_name || 'Not available';
   shAddress.textContent = item.address || 'Not available';
+
+  // Aadhaar is a local database field only: always show the field,
+  // and never replace it with data from the external API.
   shAadhar.textContent = item.aadhaar || 'Not available';
+
+  // Alternate number is conditional: show the entire field only when
+  // Alternate Number exists in data.json.
+  const alt = isNA(item.alternate_number) ? '' : item.alternate_number;
+  shAlternate.textContent = alt || 'Not available';
+  shAlternateGroup.style.display = alt ? '' : 'none';
 
   overlay.classList.add('open');
   document.body.style.overflow='hidden';
 
-  // Only ask the external service when local data is missing.
-  if (p && (!item.father_name || !item.address || !item.aadhaar)) {
+  // Only ask the external service for Father Name / Address when local data is missing.
+  // Aadhaar and Alternate Number are intentionally local-database-only fields.
+  if (p && (!item.father_name || !item.address)) {
     const extra = await fetchExtraData(p);
     if (extra) {
       if(!item.father_name && extra.father && extra.father !== 'API unavailable') shFather.textContent=extra.father;
       if(!item.address && extra.address && extra.address !== 'API unavailable') shAddress.textContent=extra.address;
-      if(!item.aadhaar && extra.aadhar && extra.aadhar !== 'API unavailable') shAadhar.textContent=extra.aadhar;
     }
   }
 }
