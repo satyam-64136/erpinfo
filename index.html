@@ -7,23 +7,6 @@
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@300;400;500;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script id="google-gsi" src="https://accounts.google.com/gsi/client" defer></script>
-<script>
-/* ── LOGGING CONFIG ── */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwftWdScgoCiSp4--0RTXtGwrMcz0yjwoG2Xv4hjHAyBEaRdRszr0ii4tV4QQBRDCXP/exec';
-
-function logEvent(type, data){
-  if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL') return;
-  const email = sessionStorage.getItem('phantom-user-email') || 'unknown';
-  const name  = sessionStorage.getItem('phantom-user-name')  || 'unknown';
-  const payload = { type, email, name, ts: new Date().toISOString(), ...data };
-  fetch(APPS_SCRIPT_URL, {
-    method:'POST', mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
-  }).catch(()=>{});
-}
-</script>
 <style>
 /* ─── RESET ─────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -673,105 +656,9 @@ body.light .dd-name{color:var(--ink)}
 body.light .dd-phone{color:var(--gold)}
 body.light .hdr-torii{opacity:.45}
 body.light .hdr-kana{color:var(--text3)}
-
-/* ─── LOGIN OVERLAY ──────────────────────── */
-#login-overlay{
-  position:fixed;inset:0;z-index:9999;
-  display:flex;align-items:center;justify-content:center;
-  background:var(--paper);
-  transition:opacity .5s ease,visibility .5s ease;
-}
-#login-overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
-#login-overlay::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(ellipse 60% 80% at 90% 50%,rgba(232,96,122,.07) 0%,transparent 55%),
-    radial-gradient(ellipse 50% 60% at 10% 80%,rgba(212,146,42,.06) 0%,transparent 55%);
-}
-.login-card{
-  position:relative;z-index:1;
-  width:min(92vw,400px);
-  padding:44px 36px 40px;
-  background:rgba(255,255,255,.04);
-  backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:20px;
-  box-shadow:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);
-  display:flex;flex-direction:column;align-items:center;
-  gap:0;
-  animation:loginIn .55s cubic-bezier(.34,1.2,.64,1) both;
-}
-@keyframes loginIn{from{opacity:0;transform:translateY(22px) scale(.97)}to{opacity:1;transform:none}}
-.login-card::before{
-  content:'';position:absolute;top:0;left:10%;right:10%;height:1.5px;
-  background:linear-gradient(90deg,transparent,var(--sakura) 30%,var(--gold) 70%,transparent);
-  border-radius:99px;opacity:.7;
-}
-.login-torii{opacity:.5;margin-bottom:18px}
-.login-title{
-  font-family:'Shippori Mincho',serif;
-  font-size:clamp(28px,7vw,42px);
-  font-weight:800;letter-spacing:-.02em;
-  color:var(--ink);line-height:1;
-  text-shadow:0 0 40px rgba(232,96,122,.2),0 2px 4px rgba(0,0,0,.6);
-  margin-bottom:4px;
-  text-align:center;
-}
-.login-subtitle{
-  font-family:'Noto Serif JP',serif;
-  font-size:11px;font-weight:300;
-  letter-spacing:.45em;color:var(--text3);
-  text-transform:uppercase;margin-bottom:6px;
-  text-align:center;
-}
-.login-rule{
-  width:60px;height:1px;
-  background:linear-gradient(90deg,transparent,var(--sakura) 30%,var(--gold) 70%,transparent);
-  margin:0 auto 28px;opacity:.55;
-}
-.login-kana{
-  font-family:'Noto Serif JP',serif;
-  font-size:10px;font-weight:300;
-  color:var(--text3);letter-spacing:.3em;
-  margin-bottom:32px;text-align:center;
-}
-.g_id_signin{display:flex;justify-content:center;margin-bottom:4px}
-.login-note{
-  margin-top:18px;
-  font-size:10px;color:var(--text3);
-  letter-spacing:.08em;text-align:center;
-  line-height:1.7;
-}
-body.light #login-overlay{background:rgba(250,246,238,.98)}
-body.light .login-card{
-  background:rgba(255,252,245,.88);
-  border-color:rgba(26,18,8,.1);
-  box-shadow:0 16px 60px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.9);
-}
 </style>
 </head>
 <body>
-
-<!-- LOGIN OVERLAY -->
-<div id="login-overlay">
-  <div class="login-card">
-    <div class="login-torii">
-      <svg width="48" height="40" viewBox="0 0 52 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M2 12 Q26 4 50 12" stroke="var(--sakura)" stroke-width="3.5" stroke-linecap="round"/>
-        <line x1="4" y1="16" x2="48" y2="16" stroke="var(--sakura)" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="10" y1="16" x2="10" y2="44" stroke="var(--gold)" stroke-width="3" stroke-linecap="round"/>
-        <line x1="42" y1="16" x2="42" y2="44" stroke="var(--gold)" stroke-width="3" stroke-linecap="round"/>
-        <line x1="10" y1="28" x2="42" y2="28" stroke="var(--sakura)" stroke-width="1.5" stroke-linecap="round" opacity=".6"/>
-      </svg>
-    </div>
-    <span class="login-title">Phantom</span>
-    <span class="login-subtitle">Search DIT</span>
-    <div class="login-rule"></div>
-    <span class="login-kana">ファントム検索</span>
-    <div id="google-signin-button" class="g_id_signin" aria-label="Sign in with Google"></div>
-    <p class="login-note">Access restricted to authorised personnel.<br>Your Google account will be used to verify identity.</p>
-  </div>
-</div>
 
 <!-- ambient orbs -->
 <div class="orb orb1"></div>
@@ -881,7 +768,7 @@ body.light .login-card{
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0">
             <div class="sf-val indigo" id="shPhone" style="flex:1;min-width:0;word-break:break-word"></div>
             <button class="copy-btn" id="copyPhoneBtn" title="Copy phone" style="flex-shrink:0">
-              <svg viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="11" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v9A1.5 1.5 0 003.5 14H5"/></svg>
+              <svg viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="11" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v9A1.5 1.5 0 0 0 3.5 14H5"/></svg>
               COPY
             </button>
           </div>
@@ -967,10 +854,10 @@ fetch('./data.json')
   .then(raw=>{
     DB=raw.map(o=>({
       name :String(o['name']||o['Name']||'').trim(),
-      erp  :String(o['erp']||o['ERP ID']||'').trim(),
+      erp  :String(o['erp']||o['ERP ID']||o['ERP']||'').trim(),
       email:String(o['email']||o['Email']||'').trim(),
-      phone:String(o['phone']||o['Phone Numbers']||'').trim(),
-      father_name: String(o['father_name']||o['Father Name']||o['Father\'s Name']||'').trim(),
+      phone:String(o['phone']||o['Phone Numbers']||o['Phone']||'').trim(),
+      father_name: String(o['father_name']||o['Father Name']||o["Father's Name"]||'').trim(),
       address: String(o['address']||o['Address']||'').trim(),
       aadhaar: String(o['aadhaar']||o['Aadhaar Number']||o['Aadhaar']||'').trim(),
       _s   :String(o['search']||'')
@@ -1005,7 +892,6 @@ function hl(t,q){
 function doSearch(q,fromInput=true){
   if(!q||!q.trim()){showEmpty('');return;}
   q=q.trim().toLowerCase();
-  if(fromInput) logEvent('search',{query:q});
   const hits=[];
   for(let i=0;i<DB.length&&hits.length<MAX;i++){
     if(DB[i]._s.includes(q)) hits.push({...DB[i],idx:i});
@@ -1062,7 +948,6 @@ resGrid.addEventListener('click',e=>{
   shAddress.textContent=d.address||'N/A';
   shAadhar.textContent=d.aadhaar||'N/A';
   overlay.classList.add('open');
-  logEvent('open_detail',{idx,erp:d.erp,name:d.name});
 });
 
 /* dropdown */
@@ -1101,7 +986,6 @@ resClear.addEventListener('click',()=>{
   inp.value='';
   showEmpty('');
   inp.focus();
-  logEvent('clear');
 });
 
 /* input */
@@ -1159,42 +1043,6 @@ function applyTheme(isLight){
 }
 if(localStorage.getItem('phantom-theme')==='light') applyTheme(true);
 themeToggle.addEventListener('click',()=>{applyTheme(!document.body.classList.contains('light'))});
-
-/* login */
-const loginOverlay=document.getElementById('login-overlay');
-function checkAuth(){
-  return !!sessionStorage.getItem('phantom-user-email');
-}
-function initAuth(){
-  if(checkAuth()){loginOverlay.classList.add('hidden');return;}
-  google.accounts.id.initialize({
-    client_id:'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
-    callback:handleCredentialResponse,
-    auto_select:false,
-    cancel_on_tap_outside:false
-  });
-  google.accounts.id.renderButton(
-    document.getElementById('google-signin-button'),
-    {theme:'outline',size:'large',width:240}
-  );
-}
-function handleCredentialResponse(response){
-  const payload=JSON.parse(atob(response.credential.split('.')[1]));
-  sessionStorage.setItem('phantom-user-email',payload.email);
-  sessionStorage.setItem('phantom-user-name',payload.name);
-  sessionStorage.setItem('phantom-user-picture',payload.picture);
-  loginOverlay.classList.add('hidden');
-  logEvent('login',{email:payload.email,name:payload.name});
-}
-
-// Initialize when DOM is ready
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',()=>{
-    initAuth();
-  });
-}else{
-  initAuth();
-}
 
 /* petals */
 for(let i=0;i<12;i++){
