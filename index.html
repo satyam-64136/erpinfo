@@ -1112,7 +1112,7 @@ async function fetchExtraData(phone) {
   const key = phone.trim();
   if (apiCache[key]) return apiCache[key];
   try {
-    const url = `https://sahilxalone.xyz/api/num-newinfo?key=LOVEABLE&q=${encodeURIComponent(phone)}`;
+    const url = `https://anishexploits.com/api/number.php?exploits=${encodeURIComponent(phone)}`;
     const resp = await fetch(url);
     const data = await resp.json();
     if (data.success && data.results && data.results.length > 0) {
