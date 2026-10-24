@@ -735,9 +735,7 @@ body.light .hdr-kana{color:var(--text3)}
   color:var(--text3);letter-spacing:.3em;
   margin-bottom:32px;text-align:center;
 }
-.g_id_signin{display:flex;justify-content:center;margin-bottom:4px;transition:opacity .2s ease}
-#login-overlay.login-processing #google-signin-button{pointer-events:none;opacity:.45}
-#login-overlay.login-processing .login-note{color:var(--sakura);font-size:11px;font-weight:600}
+.g_id_signin{display:flex;justify-content:center;margin-bottom:4px}
 .login-note{
   margin-top:18px;
   font-size:10px;color:var(--text3);
@@ -983,6 +981,12 @@ function pick(o, keys){
   }
   return '';
 }
+// Spreadsheet exports sometimes turn identifier-like values into strings such
+// as "9876543210.0". Remove only a decimal point followed entirely by zeros.
+// This keeps genuine identifier digits intact and avoids changing other fields.
+function cleanIdentifier(value){
+  return String(value ?? '').trim().replace(/^(\d+)\.0+$/, '$1');
+}
 function normalizeRows(raw){
   let rows=raw;
   if(!Array.isArray(rows)){
@@ -996,8 +1000,8 @@ function normalizeRows(raw){
     const phone=pick(o,['phone','Phone','PHONE','Phone Numbers','Phone Number','mobile','Mobile','mobile_number','Mobile Number']);
     const father=pick(o,['father_name','Father Name',"Father's Name",'FATHER NAME','father','Father']);
     const address=pick(o,['address','Address','ADDRESS','full_address','Full Address']);
-    const aadhaar=pick(o,['aadhaar','Aadhaar','Aadhaar Number','Aadhar','Aadhar Number','aadhaar_number']);
-    const alternate=pick(o,['alternate_number','Alternate Number','Alternate number','alternate','Alternate','alt_number','Alt Number','alternate_phone','Alternate Phone']);
+    const aadhaar=cleanIdentifier(pick(o,['aadhaar','Aadhaar','Aadhaar Number','Aadhar','Aadhar Number','aadhaar_number']));
+    const alternate=cleanIdentifier(pick(o,['alternate_number','Alternate Number','Alternate number','alternate','Alternate','alt_number','Alt Number','alternate_phone','Alternate Phone']));
     const supplied=pick(o,['search','Search','SEARCH']);
     return {name,erp,email,phone,father_name:father,address,aadhaar,alternate_number:alternate,_s:(supplied || `${name} ${erp} ${email} ${phone} ${father} ${address} ${aadhaar} ${alternate}`).toLowerCase()};
   }).filter(o=>o.name||o.erp||o.phone||o.email);
@@ -1315,24 +1319,13 @@ sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)clos
   }
 
   document.body.style.overflow = 'hidden';
-  let loginInProgress = false;
-  let loginCompleted = false;
-
-  function setLoginProgress(message){
-    overlay.classList.add('login-processing');
-    const note = document.querySelector('.login-note');
-    if(note) note.textContent = message || 'Signing you in… Please wait and do not tap again.';
-  }
 
   /* Define the callback BEFORE GIS is initialized. */
   window.onGoogleSignIn = function(response){
-    if(loginInProgress || loginCompleted) return;
     if(!response || !response.credential){
       console.warn('Google Sign-In returned no credential.');
       return;
     }
-    loginInProgress = true;
-    setLoginProgress('Google sign-in successful. Checking access…');
     const payload = parseJwt(response.credential);
     const name    = payload.name    || payload.email || 'User';
     const email   = payload.email   || '';
@@ -1382,7 +1375,8 @@ sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)clos
   }
 
   function checkBan(name, email, picture){
-    setLoginProgress('Checking access… Please wait.');
+    const note = document.querySelector('.login-note');
+    if(note) note.textContent = 'Verifying access…';
 
     if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL'){
       grantAccess(name, email, picture);
@@ -1430,8 +1424,6 @@ sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)clos
   }
 
   function showBanned(){
-    loginInProgress = false;
-    overlay.classList.remove('login-processing');
     const card = document.querySelector('.login-card');
     card.innerHTML = `
       <div style="font-size:40px;margin-bottom:16px">🚫</div>
@@ -1443,9 +1435,6 @@ sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_sy>72)clos
   }
 
   function grantAccess(name, email, picture){
-    if(loginCompleted) return;
-    loginCompleted = true;
-    setLoginProgress('Access verified. Opening Phantom Search…');
     sessionStorage.setItem('phantom-auth',       '1');
     sessionStorage.setItem('phantom-user-name',  name);
     sessionStorage.setItem('phantom-user-email', email);
